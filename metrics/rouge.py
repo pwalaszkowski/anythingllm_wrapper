@@ -7,7 +7,7 @@ from helpers import load_pdf_text
 
 def rouge_calculation(prediction_file):
     predictions = load_pdf_text(prediction_file)
-    references = load_pdf_text('rouge_output/reference.pdf')
+    references = load_pdf_text('files/reference.pdf')
 
     min_len = min(len(predictions), len(references))
     predictions = predictions[:min_len]

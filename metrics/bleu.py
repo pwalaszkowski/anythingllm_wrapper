@@ -8,7 +8,7 @@ from helpers import load_pdf_text
 
 def bleu_calculation(prediction_file):
     predictions = load_pdf_text(prediction_file)
-    references = load_pdf_text('bleu_output/reference.pdf')
+    references = load_pdf_text('files/reference.pdf')
 
     min_len = min(len(predictions), len(references))
     predictions = predictions[:min_len]
@@ -26,7 +26,7 @@ def bleu_calculation(prediction_file):
     print('Translation Length:', results['translation_length'])
     print('Reference Length:', results['reference_length'])
 
-    # Generate timestamp and output file name
+    # Generate 2 and output file name
     timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
     file_name = f'{timestamp}_bleu_results.csv'
 

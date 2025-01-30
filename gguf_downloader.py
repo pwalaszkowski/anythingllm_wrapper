@@ -1,6 +1,22 @@
-from huggingface_hub import hf_hub_download
+"""
+gguf_downloader.py
+
+usage:
+Command description
+python gguf_downloader.py repository/model_name_version
+
+Example Command:
+python gguf_downloader.py tensorblock/Qwen-encoder-0.5B-GGUF
+
+Optional --save-dir argument
+python gguf_downloader.py tensorblock/Qwen-encoder-0.5B-GGUF --save_dir my_downloads
+"""
+
 import os
+import argparse
 from tqdm import tqdm
+from huggingface_hub import hf_hub_download, list_repo_files
+import fnmatch
 
 class GGUFDownloader:
     def __init__(self, model_repo: str, save_dir: str = "downloads"):
@@ -26,16 +42,11 @@ class GGUFDownloader:
         # Fetch repository file list from Hugging Face
         repo_files = self._list_files_in_repo()
 
-        files_to_download = []
-        for pattern in file_patterns:
-            for file in repo_files:
-                if self._matches_pattern(file, pattern):
-                    files_to_download.append(file)
+        files_to_download = [file for pattern in file_patterns for file in repo_files if self._matches_pattern(file, pattern)]
 
         # Download files with progress bar
         for file in tqdm(files_to_download, desc="Downloading files"):
             try:
-                # Download the file and save it to the specified directory
                 local_path = hf_hub_download(repo_id=self.model_repo, filename=file, cache_dir=self.save_dir)
                 downloaded_files.append(local_path)
             except Exception as e:
@@ -49,7 +60,6 @@ class GGUFDownloader:
 
         :return: List of filenames.
         """
-        from huggingface_hub import list_repo_files
         return list_repo_files(self.model_repo)
 
     @staticmethod
@@ -61,13 +71,16 @@ class GGUFDownloader:
         :param pattern: File pattern to match (e.g., "*.gguf").
         :return: True if the filename matches the pattern, False otherwise.
         """
-        import fnmatch
         return fnmatch.fnmatch(filename, pattern)
 
 if __name__ == "__main__":
-    # Example usage
-    repo = "tensorblock/Qwen-encoder-0.5B-GGUF"  # Replace with actual Hugging Face repo
-    downloader = GGUFDownloader(model_repo=repo)
+    parser = argparse.ArgumentParser(description="Download GGUF files from a Hugging Face repository.")
+    parser.add_argument("repo", type=str, help="The Hugging Face model repository in the format 'organization/repo'.")
+    parser.add_argument("--save_dir", type=str, default="downloads", help="Directory to save downloaded files (default: downloads).")
+
+    args = parser.parse_args()
+
+    downloader = GGUFDownloader(model_repo=args.repo, save_dir=args.save_dir)
 
     try:
         files = downloader.download_gguf_files(["*.gguf"])
