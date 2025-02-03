@@ -5,6 +5,7 @@ import csv
 from datetime import datetime
 from helpers import load_pdf_text
 
+
 def rouge_calculation(prediction_file):
     predictions = load_pdf_text(prediction_file)
     references = load_pdf_text('files/reference.pdf')
