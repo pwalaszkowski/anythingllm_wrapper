@@ -21,6 +21,7 @@ API_KEY = config.get('API', 'API_KEY')
 WORKSPACE_SLUG = config.get('API', 'WORKSPACE_SLUG')
 CHAT_PROVIDER = config.get('MODEL', 'CHAT_PROVIDER')
 CHAT_MODEL = config.get('MODEL', 'CHAT_MODEL')
+MODEL_LOADED = config.get('MODEL', 'MODEL_LOADED')
 SIMILARITY_THRESHOLD = config.get('SETTINGS', 'SIMILARITY_THRESHOLD')
 OPEN_AI_TEMP = config.get('SETTINGS', 'OPEN_AI_TEMP')
 OPEN_AI_HISTORY = config.get('SETTINGS', 'OPEN_AI_HISTORY')
@@ -39,9 +40,9 @@ class APIWrapper:
         auth_url = f"{self.base_url}/auth"
         response = requests.get(auth_url, headers=self.headers)
         if response.status_code == 200:
-            logger.info("Authentication Successful: %s", response.json())
+            logger.info(f"Authentication Successful: {response.json()}")
         else:
-            logger.error("Authentication Failed: %s, %s", response.status_code, response.text)
+            logger.error(f"Authentication Failed: {response.status_code}, {response.text}")
             raise Exception(f"Authentication Failed: {response.status_code}, {response.text}")
 
     def create_workspace(self, workspace_name, **kwargs):
@@ -50,35 +51,35 @@ class APIWrapper:
         payload = json.dumps({"name": workspace_name, **kwargs})
         response = requests.post(endpoint, headers={**self.headers, "Content-Type": "application/json"}, data=payload)
         response.raise_for_status()
-        logger.info("Workspace Created: %s", response.json())
+        logger.info(f"Workspace Created: {response.json()}")
         return response.json()
 
     def update_model(self, workspace_slug, chat_provider, chat_model):
-        logger.info("Updating model for workspace: %s", workspace_slug)
+        logger.info(f"Updating model for workspace: {workspace_slug}")
         endpoint = f"{self.base_url}/workspace/{workspace_slug}/update"
         payload = json.dumps({"chatProvider": chat_provider, "chatModel": chat_model})
         response = requests.post(endpoint, headers={**self.headers, "Content-Type": "application/json"}, data=payload)
         response.raise_for_status()
-        logger.info("Model Updated Successfully: %s", response.json())
+        logger.info(f"Model Updated Successfully: {response_json()}")
         return response.json()
 
     def upload_document(self, file_path):
-        logger.info("Uploading document: %s", file_path)
+        logger.info(f"Uploading document: {file_path}")
         endpoint = f"{self.base_url}/document/upload"
         files = {'file': (os.path.basename(file_path), open(file_path, 'rb'), 'application/pdf')}
         response = requests.post(endpoint, headers=self.headers, files=files)
         response.raise_for_status()
         location = response.json().get("documents", [{}])[0].get("location", "Unknown")
-        logger.info("Document Uploaded. Location: %s", location)
+        logger.info(f"Document Uploaded. Location: {location}")
         return location
 
     def embed_document_to_workspace(self, workspace_slug, location):
-        logger.info("Embedding document to workspace: %s", workspace_slug)
+        logger.info(f"Embedding document to workspace: {workspace_slug}")
         endpoint = f"{self.base_url}/workspace/{workspace_slug}/update-embeddings"
         payload = json.dumps({"adds": [location], "deletes": []})
         response = requests.post(endpoint, headers={**self.headers, "Content-Type": "application/json"}, data=payload)
         response.raise_for_status()
-        logger.info("Document Embedded Successfully: %s", response.json())
+        logger.info(f"Document Embedded Successfully:{response.json()}")
         return response.json()
 
     def chat_in_workspace(self, slug, message, mode="chat", session_id=None):
@@ -87,7 +88,7 @@ class APIWrapper:
         response = requests.post(endpoint, headers={**self.headers, "Content-Type": "application/json"}, json=payload)
         time.sleep(720)
         response.raise_for_status()
-        logger.info("Chat Response: %s", response.json())
+        logger.info(f"Chat Response: {response.json()}", )
         return response.json()["textResponse"]
 
 if __name__ == "__main__":
@@ -104,26 +105,28 @@ if __name__ == "__main__":
             topN=4
         )
 
-        # api.update_model(WORKSPACE_SLUG, CHAT_PROVIDER, CHAT_MODEL)
+        if MODEL_LOADED == True:
+            logger.info(f"Download and Load Model {CHAT_MODEL}")
+            api.update_model(WORKSPACE_SLUG, CHAT_PROVIDER, CHAT_MODEL)
 
         document_location = api.upload_document("files/reference.pdf")
         api.embed_document_to_workspace(WORKSPACE_SLUG, document_location)
 
         response_text = api.chat_in_workspace(WORKSPACE_SLUG, QUESTION_TO_CHAT, "chat", "master-session")
-        logger.info("Chat Answer: %s", response_text)
+        logger.info(f"Chat Answer: {response_text}")
 
         txt_filename = "txt_output/text_response.txt"
         with open(txt_filename, "w", encoding="utf-8") as file:
             file.write(response_text)
-        logger.info("Text file saved: %s", txt_filename)
+        logger.info(f"Text file saved: {txt_filename}")
 
         pdf_filename = "pdf_output/text_response.pdf"
         txt_filename = "txt_output/text_response.txt"
         txt_to_pdf(txt_filename, pdf_filename)
-        logger.info("PDF file saved: %s", pdf_filename)
+        logger.info(f"PDF file saved: {pdf_filename}")
 
         timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
         bleu.bleu_calculation(pdf_filename)
         rouge.rouge_calculation(pdf_filename)
     except Exception as e:
-        logger.error("An error occurred: %s", str(e))
+        logger.error(f"An error occurred: {str(e)}")
