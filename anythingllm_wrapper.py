@@ -111,7 +111,7 @@ class APIWrapper:
     def remove_documents(self):
         logger.info("Removing Documents")
         endpoint = f"{self.base_url}/system/remove-documents"
-        payload = json.dumps({"names": "custom-documents/*.json"})
+        payload = json.dumps({"names": "custom-documents"})
         response = requests.delete(endpoint, headers={**self.headers, "Content-Type": "application/json"}, data=payload)
         response.raise_for_status()
         logger.info(f"Documents Removed")
@@ -139,6 +139,8 @@ if __name__ == "__main__":
         if not MODEL_DOWNLOADED:
             logger.info(f"Download and Load Model {CHAT_MODEL}")
             api.update_model(WORKSPACE_SLUG, CHAT_PROVIDER, CHAT_MODEL)
+        
+        api.update_model(WORKSPACE_SLUG, CHAT_PROVIDER, CHAT_MODEL)
 
         if UPLOAD_FILE:
             document_location = api.upload_document(reference_file)
