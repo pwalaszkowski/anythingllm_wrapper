@@ -167,5 +167,8 @@ if __name__ == "__main__":
         logger.info(f"Remove files from system")
         api.remove_documents()
 
+        os.remove(pdf_filename)
+        os.remove(txt_filename)
+
     except Exception as e:
         logger.error(f"An error occurred: {str(e)}")
