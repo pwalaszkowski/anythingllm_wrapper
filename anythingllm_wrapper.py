@@ -29,6 +29,7 @@ CHAT_PROVIDER = config.get('MODEL', 'CHAT_PROVIDER')
 CHAT_MODEL = config.get('MODEL', 'CHAT_MODEL')
 MODEL_DOWNLOADED = config.getboolean('MODEL', 'MODEL_DOWNLOADED')  # Convert to boolean
 UPLOAD_FILE = config.getboolean('MODEL', 'UPLOAD_FILE')  # Convert to boolean
+REFERENCE_FILE = config.get('MODEL', 'REFERENCE_FILE')
 SIMILARITY_THRESHOLD = config.get('SETTINGS', 'SIMILARITY_THRESHOLD')
 OPEN_AI_TEMP = config.get('SETTINGS', 'OPEN_AI_TEMP')
 OPEN_AI_HISTORY = config.get('SETTINGS', 'OPEN_AI_HISTORY')
@@ -99,12 +100,29 @@ class APIWrapper:
         logger.info(f"Chat Response: {response.json()}")
         return response.json()["textResponse"]
 
+    def delete_workspace(self, workspace_slug):
+        logger.info(f"Deleting Workspace: {workspace_slug}")
+        endpoint = f"{self.base_url}/workspace/{workspace_slug}"
+        response = requests.delete(endpoint, headers=self.headers)
+        response.raise_for_status()
+        logger.info(f"Workspace Deleted: {workspace_slug}")
+        return response.status_code
+
+    def remove_documents(self):
+        logger.info("Removing Documents")
+        endpoint = f"{self.base_url}/system/remove-documents"
+        payload = json.dumps({"names": "custom-documents/*.json"})
+        response = requests.delete(endpoint, headers={**self.headers, "Content-Type": "application/json"}, data=payload)
+        response.raise_for_status()
+        logger.info(f"Documents Removed")
+        return response.json()
+
 
 if __name__ == "__main__":
     api = APIWrapper(base_url=BASE_URL, api_key=API_KEY)
     txt_filename = "txt_output/text_response.txt"
     pdf_filename = "pdf_output/text_response.pdf"
-    reference_file = "files/reference.pdf"
+    reference_file = REFERENCE_FILE
 
     try:
         workspace = api.create_workspace(
@@ -138,8 +156,14 @@ if __name__ == "__main__":
         logger.info(f"PDF file saved: {pdf_filename}")
         timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
 
-        bleu.bleu_calculation(pdf_filename)
-        rouge.rouge_calculation(pdf_filename)
+        bleu.bleu_calculation(pdf_filename, reference_file)
+        rouge.rouge_calculation(pdf_filename, reference_file)
+        
+        logger.info(f"Delete workspace")
+        api.delete_workspace(WORKSPACE_SLUG)
+
+        logger.info(f"Remove files from system")
+        api.remove_documents()
 
     except Exception as e:
         logger.error(f"An error occurred: {str(e)}")

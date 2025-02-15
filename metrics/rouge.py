@@ -6,9 +6,9 @@ from datetime import datetime
 from helpers import load_pdf_text
 
 
-def rouge_calculation(prediction_file):
+def rouge_calculation(prediction_file, reference_file):
     predictions = load_pdf_text(prediction_file)
-    references = load_pdf_text('files/reference.pdf')
+    references = load_pdf_text(reference_file)
 
     min_len = min(len(predictions), len(references))
     predictions = predictions[:min_len]
