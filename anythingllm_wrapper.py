@@ -1,3 +1,4 @@
+import argparse
 import json
 import logging
 import os
@@ -12,16 +13,22 @@ from metrics import bleu, rouge
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Load configuration
+# Parse command-line arguments
+parser = argparse.ArgumentParser(description="API Wrapper Script with Config File Parameter")
+parser.add_argument("--config", type=str, required=True, help="Path to the configuration file (config.ini)")
+args = parser.parse_args()
+
+# Load configuration from the specified file
 config = configparser.ConfigParser()
-config.read('config.ini')
+config.read(args.config)
 
 BASE_URL = config.get('API', 'BASE_URL')
 API_KEY = config.get('API', 'API_KEY')
 WORKSPACE_SLUG = config.get('API', 'WORKSPACE_SLUG')
 CHAT_PROVIDER = config.get('MODEL', 'CHAT_PROVIDER')
 CHAT_MODEL = config.get('MODEL', 'CHAT_MODEL')
-MODEL_LOADED = config.get('MODEL', 'MODEL_LOADED')
+MODEL_DOWNLOADED = config.getboolean('MODEL', 'MODEL_DOWNLOADED')  # Convert to boolean
+UPLOAD_FILE = config.getboolean('MODEL', 'UPLOAD_FILE')  # Convert to boolean
 SIMILARITY_THRESHOLD = config.get('SETTINGS', 'SIMILARITY_THRESHOLD')
 OPEN_AI_TEMP = config.get('SETTINGS', 'OPEN_AI_TEMP')
 OPEN_AI_HISTORY = config.get('SETTINGS', 'OPEN_AI_HISTORY')
@@ -60,18 +67,19 @@ class APIWrapper:
         payload = json.dumps({"chatProvider": chat_provider, "chatModel": chat_model})
         response = requests.post(endpoint, headers={**self.headers, "Content-Type": "application/json"}, data=payload)
         response.raise_for_status()
-        logger.info(f"Model Updated Successfully: {response_json()}")
+        logger.info(f"Model Updated Successfully: {response.json()}")
         return response.json()
 
     def upload_document(self, file_path):
         logger.info(f"Uploading document: {file_path}")
         endpoint = f"{self.base_url}/document/upload"
-        files = {'file': (os.path.basename(file_path), open(file_path, 'rb'), 'application/pdf')}
-        response = requests.post(endpoint, headers=self.headers, files=files)
-        response.raise_for_status()
-        location = response.json().get("documents", [{}])[0].get("location", "Unknown")
-        logger.info(f"Document Uploaded. Location: {location}")
-        return location
+        with open(file_path, 'rb') as file:
+            files = {'file': (os.path.basename(file_path), file, 'application/pdf')}
+            response = requests.post(endpoint, headers=self.headers, files=files)
+            response.raise_for_status()
+            location = response.json().get("documents", [{}])[0].get("location", "Unknown")
+            logger.info(f"Document Uploaded. Location: {location}")
+            return location
 
     def embed_document_to_workspace(self, workspace_slug, location):
         logger.info(f"Embedding document to workspace: {workspace_slug}")
@@ -79,20 +87,25 @@ class APIWrapper:
         payload = json.dumps({"adds": [location], "deletes": []})
         response = requests.post(endpoint, headers={**self.headers, "Content-Type": "application/json"}, data=payload)
         response.raise_for_status()
-        logger.info(f"Document Embedded Successfully:{response.json()}")
+        logger.info(f"Document Embedded Successfully: {response.json()}")
         return response.json()
 
     def chat_in_workspace(self, slug, message, mode="chat", session_id=None):
         endpoint = f"{self.base_url}/workspace/{slug}/chat"
         payload = {"message": message, "mode": mode, "sessionId": session_id} if session_id else {"message": message, "mode": mode}
         response = requests.post(endpoint, headers={**self.headers, "Content-Type": "application/json"}, json=payload)
-        time.sleep(720)
+        time.sleep(2)  # Reduce sleep time for responsiveness
         response.raise_for_status()
-        logger.info(f"Chat Response: {response.json()}", )
+        logger.info(f"Chat Response: {response.json()}")
         return response.json()["textResponse"]
+
 
 if __name__ == "__main__":
     api = APIWrapper(base_url=BASE_URL, api_key=API_KEY)
+    txt_filename = "txt_output/text_response.txt"
+    pdf_filename = "pdf_output/text_response.pdf"
+    reference_file = "files/reference.pdf"
+
     try:
         workspace = api.create_workspace(
             workspace_name=WORKSPACE_SLUG,
@@ -105,28 +118,28 @@ if __name__ == "__main__":
             topN=4
         )
 
-        if MODEL_LOADED == True:
+        if not MODEL_DOWNLOADED:
             logger.info(f"Download and Load Model {CHAT_MODEL}")
             api.update_model(WORKSPACE_SLUG, CHAT_PROVIDER, CHAT_MODEL)
 
-        document_location = api.upload_document("files/reference.pdf")
-        api.embed_document_to_workspace(WORKSPACE_SLUG, document_location)
+        if UPLOAD_FILE:
+            document_location = api.upload_document(reference_file)
+            api.embed_document_to_workspace(WORKSPACE_SLUG, document_location)
 
         response_text = api.chat_in_workspace(WORKSPACE_SLUG, QUESTION_TO_CHAT, "chat", "master-session")
         logger.info(f"Chat Answer: {response_text}")
 
-        txt_filename = "txt_output/text_response.txt"
         with open(txt_filename, "w", encoding="utf-8") as file:
             file.write(response_text)
+
         logger.info(f"Text file saved: {txt_filename}")
-
-        pdf_filename = "pdf_output/text_response.pdf"
-        txt_filename = "txt_output/text_response.txt"
         txt_to_pdf(txt_filename, pdf_filename)
-        logger.info(f"PDF file saved: {pdf_filename}")
 
+        logger.info(f"PDF file saved: {pdf_filename}")
         timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+
         bleu.bleu_calculation(pdf_filename)
         rouge.rouge_calculation(pdf_filename)
+
     except Exception as e:
         logger.error(f"An error occurred: {str(e)}")
