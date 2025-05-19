@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Podgląd pliku CSV</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    label {
+      font-weight: bold;
+    }
+
+    #fileName {
+      margin-left: 10px;
+      font-style: italic;
+      color: #555;
+    }
+
+    input[type="file"] {
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    table, th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
+
+    th {
+      background-color: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Podgląd pliku CSV</h2>
+
+  <label for="csvFileInput">Wybierz plik CSV:</label>
+  <input type="file" id="csvFileInput" accept=".csv">
+  <span id="fileName"></span>
+
+  <div id="tableContainer"></div>
+
+  <script>
+    const fileInput = document.getElementById('csvFileInput');
+    const tableContainer = document.getElementById('tableContainer');
+    const fileName = document.getElementById('fileName');
+
+    fileInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) {
+        alert('Proszę wybrać plik.');
+        return;
+      }
+
+      fileName.textContent = file.name;
+
+      Papa.parse(file, {
+        header: false,
+        skipEmptyLines: true,
+        complete: function(results) {
+          const data = results.data;
+          renderTable(data);
+        },
+        error: function(err) {
+          alert('Błąd podczas parsowania pliku CSV: ' + err.message);
+        }
+      });
+    });
+
+    function renderTable(data) {
+      let html = '<table><thead><tr>';
+      data[0].forEach(header => html += `<th>${header}</th>`);
+      html += '</tr></thead><tbody>';
+      data.slice(1).forEach(row => {
+        html += '<tr>';
+        row.forEach(cell => html += `<td>${cell}</td>`);
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      tableContainer.innerHTML = html;
+    }
+  </script>
+
+</body>
+</html>
