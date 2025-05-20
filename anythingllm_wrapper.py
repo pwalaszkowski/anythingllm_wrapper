@@ -35,7 +35,7 @@ OPEN_AI_TEMP = config.get('SETTINGS', 'OPEN_AI_TEMP')
 OPEN_AI_HISTORY = config.get('SETTINGS', 'OPEN_AI_HISTORY')
 QUESTION_TO_CHAT = config.get('PROMPT', 'QUESTION_TO_CHAT')
 
-
+# Wrapper Class
 class APIWrapper:
     def __init__(self, base_url, api_key):
         self.base_url = base_url
@@ -117,7 +117,7 @@ class APIWrapper:
         logger.info(f"Documents Removed")
         return response.json()
 
-
+# Main function
 if __name__ == "__main__":
     api = APIWrapper(base_url=BASE_URL, api_key=API_KEY)
     txt_filename = "output/txt_output/text_response.txt"
