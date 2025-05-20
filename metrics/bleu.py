@@ -3,7 +3,7 @@ import evaluate
 import csv
 
 from datetime import datetime
-from helpers import load_pdf_text
+from helpers.helpers import load_pdf_text
 
 
 def bleu_calculation(prediction_file, reference_file):
@@ -30,7 +30,7 @@ def bleu_calculation(prediction_file, reference_file):
     timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
     file_name = f'{timestamp}_bleu_results.csv'
 
-    with open(os.path.join('bleu_output', file_name), mode='w', newline='') as file:
+    with open(os.path.join('metrics_output', file_name), mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['Metric', 'Score'])
         writer.writerow(['BLEU', results['bleu']])

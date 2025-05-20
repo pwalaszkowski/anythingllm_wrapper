@@ -6,7 +6,7 @@ import requests
 import time
 import configparser
 from datetime import datetime
-from helpers import txt_to_pdf
+from helpers.helpers import txt_to_pdf
 from metrics import bleu, rouge
 
 # Configure logging
@@ -120,8 +120,8 @@ class APIWrapper:
 
 if __name__ == "__main__":
     api = APIWrapper(base_url=BASE_URL, api_key=API_KEY)
-    txt_filename = "txt_output/text_response.txt"
-    pdf_filename = "pdf_output/text_response.pdf"
+    txt_filename = "output/txt_output/text_response.txt"
+    pdf_filename = "output/pdf_output/text_response.pdf"
     reference_file = REFERENCE_FILE
 
     try:
@@ -166,10 +166,6 @@ if __name__ == "__main__":
 
         logger.info(f"Remove files from system")
         api.remove_documents()
-        
-        # Comment out the file removal
-        # os.remove(pdf_filename)
-        # os.remove(txt_filename)
 
     except Exception as e:
         logger.error(f"An error occurred: {str(e)}")

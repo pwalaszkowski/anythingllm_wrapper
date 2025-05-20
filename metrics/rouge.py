@@ -3,7 +3,7 @@ import evaluate
 import csv
 
 from datetime import datetime
-from helpers import load_pdf_text
+from helpers.helpers import load_pdf_text
 
 
 def rouge_calculation(prediction_file, reference_file):
@@ -28,7 +28,7 @@ def rouge_calculation(prediction_file, reference_file):
     timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
     file_name = f'{timestamp}_rouge_results.csv'
 
-    with open(os.path.join('rouge_output', file_name), mode='w', newline='') as file:
+    with open(os.path.join('metrics_output', file_name), mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['Metric', 'F1-score'])
         writer.writerow(['ROUGE-1', results['rouge1']])
